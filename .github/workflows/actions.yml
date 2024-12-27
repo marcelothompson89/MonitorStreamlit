@@ -21,20 +21,11 @@ jobs:
         with:
           python-version: "3.12"
     
-      # 2. Instalar dependencias del sistema
-      - name: Install Chrome and Chromedriver
+      # 2. Instalar Google Chrome
+      - name: Install Chrome
         run: |
-            sudo apt-get update
-            sudo apt-get install -y wget unzip xvfb libxi6 libgconf-2-4
-            # Instalar Google Chrome
-            wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-            sudo apt install -y ./google-chrome-stable_current_amd64.deb
-            # Instalar Chromedriver
-            CHROME_VERSION=$(google-chrome --version | sed 's/Google Chrome //g' | cut -d'.' -f1)
-            wget https://chromedriver.storage.googleapis.com/${CHROME_VERSION}.0/chromedriver_linux64.zip
-            unzip chromedriver_linux64.zip
-            sudo mv chromedriver /usr/local/bin/
-            sudo chmod +x /usr/local/bin/chromedriver
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
       # 3. Instalar dependencias
       - name: Install dependencies

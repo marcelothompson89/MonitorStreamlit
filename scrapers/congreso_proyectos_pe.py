@@ -26,8 +26,12 @@ async def scrape_congreso_proyectos():
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
     
-    # Configurar el servicio de Chrome
-    service = Service("/usr/local/bin/chromedriver")
+
+    # Ruta del Chromedriver (dentro de la carpeta bin)
+    chromedriver_path = os.path.join(os.path.dirname(__file__), "../bin/chromedriver")
+
+    # Crear el servicio de Selenium
+    service = Service(chromedriver_path)
     
     try:
         driver = webdriver.Chrome(service=service, options=chrome_options)
