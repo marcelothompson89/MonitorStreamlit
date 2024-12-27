@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime
 import json
 import time
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -28,7 +29,7 @@ async def scrape_congreso_proyectos():
     
 
     # Ruta del Chromedriver (dentro de la carpeta bin)
-    chromedriver_path = os.path.join(os.path.dirname(__file__), "../bin/chromedriver")
+    chromedriver_path = os.path.join(os.path.dirname(__file__), "../bin/chromedriver.exe")
 
     # Crear el servicio de Selenium
     service = Service(chromedriver_path)
