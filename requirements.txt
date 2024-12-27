@@ -1,0 +1,8 @@
+httpx
+beautifulsoup4
+streamlit
+SQLAlchemy
+requests  # si usas requests en otros scrapers
+pydantic
+aiohttp
+selenium
