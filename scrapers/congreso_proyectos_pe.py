@@ -3,6 +3,7 @@ from datetime import datetime
 import json
 import time
 import os
+import platform
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -28,8 +29,11 @@ async def scrape_congreso_proyectos():
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
     
 
-    # Ruta del Chromedriver (dentro de la carpeta bin)
-    chromedriver_path = os.path.join(os.path.dirname(__file__), "../bin/chromedriver.exe")
+    # Detectar el sistema operativo y seleccionar el Chromedriver correcto
+    if platform.system() == "Windows":
+        chromedriver_path = os.path.join(os.path.dirname(__file__), "../bin/chromedriver.exe")
+    else:
+        chromedriver_path = os.path.join(os.path.dirname(__file__), "../bin/chromedriver")
 
     # Crear el servicio de Selenium
     service = Service(chromedriver_path)
