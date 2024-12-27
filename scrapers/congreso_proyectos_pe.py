@@ -27,7 +27,7 @@ async def scrape_congreso_proyectos():
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
     
     # Configurar el servicio de Chrome
-    service = Service(r'C:\SeleniumDrivers\chromedriver.exe')
+    service = Service("/usr/local/bin/chromedriver")
     
     try:
         driver = webdriver.Chrome(service=service, options=chrome_options)

@@ -19,7 +19,22 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: "3.12"
+    
+      # 2. Instalar dependencias del sistema
+      - name: Install Chrome and Chromedriver
+        run: |
+            sudo apt-get update
+            sudo apt-get install -y wget unzip xvfb libxi6 libgconf-2-4
+            # Instalar Google Chrome
+            wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+            sudo apt install -y ./google-chrome-stable_current_amd64.deb
+            # Instalar Chromedriver
+            CHROME_VERSION=$(google-chrome --version | sed 's/Google Chrome //g' | cut -d'.' -f1)
+            wget https://chromedriver.storage.googleapis.com/${CHROME_VERSION}.0/chromedriver_linux64.zip
+            unzip chromedriver_linux64.zip
+            sudo mv chromedriver /usr/local/bin/
+            sudo chmod +x /usr/local/bin/chromedriver
 
       # 3. Instalar dependencias
       - name: Install dependencies
@@ -41,11 +56,12 @@ jobs:
 
       # 6. Subir el archivo SQLite actualizado al repositorio
       - name: Commit and push updated SQLite
-        run: |
-          git config --local user.name "GitHub Actions"
-          git config --local user.email "actions@github.com"
-          git add alerts2.db
-          git commit -m "Update SQLite database [skip ci]" || echo "No changes to commit"
-          git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add alerts2.db
+          git commit -m "Update SQLite database [skip ci]" || echo "No changes to commit"
+          git push origin main
+    
