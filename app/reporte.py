@@ -15,6 +15,11 @@ def main():
     session = SessionLocal()
 
     # ----------------------------------------------------------------
+    # 4. Obtener todas las alertas
+    # ----------------------------------------------------------------
+    all_alertas = session.query(Alerta).order_by(Alerta.presentation_date.desc()).all()
+
+    # ----------------------------------------------------------------
     # 1. Seleccionar usuario
     # ----------------------------------------------------------------
     users = session.query(User).all()
@@ -26,6 +31,7 @@ def main():
         user_options
     )
     user = None
+    selected_keywords = []
     if selected_user_email != "<Seleccionar usuario>":
         user = session.query(User).filter(User.email == selected_user_email).first()
 
@@ -34,63 +40,36 @@ def main():
     # ----------------------------------------------------------------
     col_keywords, col_add = st.columns([3, 1])
 
-    # Checkbox global para aplicar o no las palabras clave en el filtrado
-    apply_keyword_filter = False
-
+    # Mostrar las palabras clave en un desplegable
     with col_keywords:
         if user:
             st.subheader(f"Palabras clave de {user.email}")
-            
-            # Activar/Desactivar filtro global por palabras clave
-            apply_keyword_filter = st.checkbox("Activar Filtro de Palabras Clave", value=False)
 
-            # Traer todas las keywords del usuario
-            user_keywords = session.query(Keyword).filter(
-                Keyword.user_id == user.id
-            ).all()
+            # Obtener todas las palabras clave del usuario
+            user_keywords = session.query(Keyword).filter(Keyword.user_id == user.id).all()
+            keywords_list = [kw.word for kw in user_keywords]
 
-            if user_keywords:
-                # Mostramos cada palabra clave con un pequeño recuadro
-                for kw in user_keywords:
-                    with st.container():
-                        c1, c2 = st.columns([6, 1])
+            if keywords_list:
+                # Añadir opción "Seleccionar todas"
+                select_all_option = "Seleccionar todas"
+                keywords_list.insert(0, select_all_option)
 
-                        # Texto de la palabra clave
-                        c1.markdown(f"**{kw.word}**")
+                # Desplegable de selección múltiple
+                selected_keywords = st.multiselect(
+                    "Selecciona palabras clave para filtrar:",
+                    options=keywords_list,
+                    default=[]  # Por defecto, ninguna seleccionada
+                )
 
-                        # Botón cruz para eliminar
-                        if c2.button("❌", key=f"del_{kw.id}"):
-                            session.delete(kw)
-                            session.commit()
-                            st.rerun()
+                # Si el usuario selecciona "Seleccionar todas", selecciona todo automáticamente
+                if select_all_option in selected_keywords:
+                    selected_keywords = keywords_list[1:]  # Excluye "Seleccionar todas"
+
+                st.write("Palabras seleccionadas:", ", ".join(selected_keywords))
             else:
                 st.info("No hay palabras clave para este usuario.")
         else:
             st.info("Por favor, selecciona un usuario para administrar sus palabras clave.")
-
-    # ----------------------------------------------------------------
-    # 3. Formulario para agregar nueva palabra (columna derecha)
-    # ----------------------------------------------------------------
-    with col_add:
-        if user:
-            st.subheader("Agregar Palabra Clave")
-            new_word = st.text_input("", placeholder="Escribe la palabra…")
-            if st.button("Agregar"):
-                if new_word.strip():
-                    new_kw = Keyword(
-                        word=new_word.strip(),
-                        user_id=user.id
-                        # asumiendo que ya no usas 'active' individualmente
-                    )
-                    session.add(new_kw)
-                    session.commit()
-                    st.success(f"Palabra clave '{new_word}' agregada.")
-                    st.rerun()
-
-    # ----------------------------------------------------------------
-    # 4. Obtener todas las alertas
-    # ----------------------------------------------------------------
-    all_alertas = session.query(Alerta).all()
 
     # ----------------------------------------------------------------
     # 5. Filtro por Institución
@@ -137,41 +116,14 @@ def main():
     # ----------------------------------------------------------------
     # 9. Aplicar Filtros
     # ----------------------------------------------------------------
-    filtered_alertas = []
-    for alerta in all_alertas:
-        # Filtro institución
-        if selected_institution != "Todas" and alerta.institution != selected_institution:
-            continue
-
-        # Filtro país
-        if selected_country != "Todos" and alerta.country != selected_country:
-            continue
-
-        # Filtro rango de fechas
-        if alerta.presentation_date:
-            alerta_date = alerta.presentation_date.date()
-            if not (start_date <= alerta_date <= end_date):
-                continue
-
-        # Filtro de texto
-        if search_text:
-            s_text_lower = search_text.lower()
-            title_lower = (alerta.title or "").lower()
-            desc_lower = (alerta.description or "").lower()
-            if s_text_lower not in title_lower and s_text_lower not in desc_lower:
-                continue
-
-        # Filtro global de palabras clave
-        if apply_keyword_filter and user:
-            keywords_list = [kw.word.lower() for kw in user.keywords]
-            if keywords_list:
-                titulo_lower = (alerta.title or "").lower()
-                desc_lower = (alerta.description or "").lower()
-                # Si no coincide con al menos una keyword, lo descartamos
-                if not any(k in titulo_lower or k in desc_lower for k in keywords_list):
-                    continue
-
-        filtered_alertas.append(alerta)
+    filtered_alertas = [
+        alerta for alerta in all_alertas
+        if (selected_institution == "Todas" or alerta.institution == selected_institution)
+        and (selected_country == "Todos" or alerta.country == selected_country)
+        and (not alerta.presentation_date or (start_date <= alerta.presentation_date.date() <= end_date))
+        and (not search_text or search_text.lower() in (alerta.title or "").lower() or search_text.lower() in (alerta.description or "").lower())
+        and (not selected_keywords or any(k.lower() in (alerta.title or "").lower() or k.lower() in (alerta.description or "").lower() for k in selected_keywords))
+    ]
 
     # ----------------------------------------------------------------
     # 10. Mostrar resultados
