@@ -6,3 +6,4 @@ requests  # si usas requests en otros scrapers
 pydantic
 aiohttp
 selenium
+crawl4ai

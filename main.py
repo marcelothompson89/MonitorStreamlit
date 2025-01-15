@@ -16,6 +16,11 @@ from scrapers.ispch_resoluciones_cl import scrape_ispch_resoluciones
 from scrapers.minsa_normas_pe import scrape_minsa_normas
 from scrapers.minsa_noticias_pe import scrape_minsa_noticias
 from scrapers.senado_noticias_cl import scrape_senado_noticias
+from scrapers.anvisa_normas_br import scrape_anvisa
+from scrapers.anvisa_noti_br import scrape_anvisa_noticias
+from scrapers.diputados_noti_br import scrape_camara_noticias_br
+from scrapers.senado_noti_br import scrape_senado_noticias_br
+from scrapers.minsalud_noti_br import scrape_minsalud_noticias_br
 
 # DB
 from database.db import SessionLocal, engine
@@ -121,6 +126,27 @@ async def run_scrapers():
         # 13. SENADO PERU NOTICIAS
         senado_noticias_items = await scrape_senado_noticias()
         save_items(senado_noticias_items, "Senado Noticias_CL")
+
+        # 14. ANVISA NORMAS BRASIL
+        anvisa_normas_items = await scrape_anvisa()
+        save_items(anvisa_normas_items, "ANVISA Normas_BR")
+
+        # 15. ANVISA NOTICIAS BRASIL
+        anvisa_noticias_items = await scrape_anvisa_noticias()
+        save_items(anvisa_noticias_items, "ANVISA Noticias_BR")
+
+        # 16. CAMARA BRASIL NOTICIAS
+        camara_noticias_items = await scrape_camara_noticias_br()
+        save_items(camara_noticias_items, "Diputados Noticias_BR")
+
+        # 17. SENADO BRASIL NOTICIAS
+        senado_noticias_items = await scrape_senado_noticias_br()
+        save_items(senado_noticias_items, "Senado Noticias_BR")
+
+        # 18. MINSA BRASIL NOTICIAS
+        minsa_noticias_items = await scrape_minsalud_noticias_br()
+        save_items(minsa_noticias_items, "MINSA Noticias_BR")
+
 
     except Exception as e:
         print(f"Error en run_scrapers: {str(e)}")

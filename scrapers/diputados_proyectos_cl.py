@@ -76,7 +76,7 @@ async def scrape_diputados_proyectos():
                         print(f"[Diputados Proyectos_CL] Error procesando proyecto: {str(e)}")
                         continue
                 
-        print(f"[Diputados Proyectos_CL] Se encontraron {len(items)} proyectos")
+        #print(f"[Diputados Proyectos_CL] Se encontraron {len(items)} proyectos")
         return items
     except Exception as e:
         print(f"[Diputados Proyectos_CL] Error: {str(e)}")
