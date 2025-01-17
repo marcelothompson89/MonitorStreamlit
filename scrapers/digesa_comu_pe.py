@@ -51,6 +51,7 @@ async def scrape_digesa_comunicaciones():
                                         'source_url': pdf_url,
                                         'source_type': 'DIGESA',
                                         'presentation_date': fecha,
+                                        'category': 'Comunicados',
                                         'institution': 'DIGESA_comunicaciones_pe',
                                         'metadata': json.dumps(metadata)
                                     }

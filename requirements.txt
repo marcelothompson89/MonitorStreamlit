@@ -2,7 +2,8 @@ httpx
 beautifulsoup4
 streamlit
 SQLAlchemy
-requests  # si usas requests en otros scrapers
+requests
 pydantic
 aiohttp
 selenium
+crawl4ai

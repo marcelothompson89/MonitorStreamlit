@@ -18,6 +18,11 @@ from scrapers.minsa_noticias_pe import scrape_minsa_noticias
 from scrapers.senado_noticias_cl import scrape_senado_noticias
 from scrapers.anvisa_normas_br import scrape_anvisa
 from scrapers.diputados_noti_br import scrape_camara_noticias_br
+from scrapers.anvisa_noti_br import scrape_anvisa_noticias
+from scrapers.senado_noti_br import scrape_senado_noticias_br
+from scrapers.minsalud_noti_br import scrape_minsalud_noticias_br
+from scrapers.dou_br import scrape_dou_br
+from scrapers.congreso_normas_br import scrape_congreso_normas_br
 
 # DB
 from database.db import SessionLocal, engine
@@ -128,9 +133,29 @@ async def run_scrapers():
         anvisa_normas_items = await scrape_anvisa()
         save_items(anvisa_normas_items, "ANVISA Normas_BR")
 
+        # 15. ANVISA NOTICIAS BRASIL
+        anvisa_noticias_items = await scrape_anvisa_noticias()
+        save_items(anvisa_noticias_items, "ANVISA Noticias_BR")
+
         # 16. CAMARA BRASIL NOTICIAS
         camara_noticias_items = await scrape_camara_noticias_br()
         save_items(camara_noticias_items, "Diputados Noticias_BR")
+
+        # 17. SENADO BRASIL NOTICIAS
+        senado_noticias_items = await scrape_senado_noticias_br()
+        save_items(senado_noticias_items, "Senado Noticias_BR")
+
+        # 18. MINSA BRASIL NOTICIAS
+        minsa_noticias_items = await scrape_minsalud_noticias_br()
+        save_items(minsa_noticias_items, "MINSA Noticias_BR")
+
+        # 19. DOU BRASIL NOTICIAS
+        dou_noticias_items = await scrape_dou_br()
+        save_items(dou_noticias_items, "DOU Normas_BR")
+
+        # 20. CONGRESO BRASIL NORMAS
+        congreso_normas_items = await scrape_congreso_normas_br()
+        save_items(congreso_normas_items, "CONGRESO Normas_BR")
 
     except Exception as e:
         print(f"Error en run_scrapers: {str(e)}")

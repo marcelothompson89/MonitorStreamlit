@@ -65,6 +65,7 @@ async def scrape_ispch_resoluciones():
                         'source_type': 'ispch_resoluciones_cl',
                         'country': 'Chile',
                         'presentation_date': fecha,
+                        'category': "Resoluciones",
                         'institution': 'ispch_resoluciones_cl',
                         'metadata': json.dumps({
                             'numero_resolucion': numero,

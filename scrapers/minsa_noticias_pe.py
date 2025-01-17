@@ -80,6 +80,7 @@ async def scrape_minsa_noticias():
                         "source_type": "minsa_noticias_pe",
                         "country": "Perú",
                         "presentation_date": fecha,
+                        "category": "Noticias",
                         "institution": "minsa_noticias_pe",
                         "metadata": json.dumps({
                             "imagen": img_data,

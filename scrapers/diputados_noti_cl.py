@@ -44,10 +44,10 @@ async def scrape_diputados_noticias():
                             "source_url": url,
                             "source_type": "diputados_noticias_cl",
                             "country": "Chile",
-                            "presentation_date": date,
-                            'institution': 'diputados_noticias_cl',
+                            "presentation_date": date, 
+                            'category': "Noticias",
+                            "institution": 'diputados_noticias_cl',
                             "metadata": json.dumps({
-                                "category": category_text,
                                 "image_url": img_url
                             })
                         }

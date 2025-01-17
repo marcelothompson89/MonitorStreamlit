@@ -66,6 +66,7 @@ async def scrape_ispch_noticias():
                         "source_type": "ispch_noticias_cl",
                         "country": "Chile",
                         "presentation_date": fecha,
+                        "category": "Noticias",
                         "institution": "ispch_noticias_cl",
                         "metadata": json.dumps({
                             "tipo": "Noticia ISPCH"

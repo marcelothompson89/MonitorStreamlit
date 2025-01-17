@@ -71,6 +71,7 @@ async def scrape_minsa_normas():
                         "source_type": "minsa_normas_pe",
                         "country": "Perú",
                         "presentation_date": fecha,
+                        "category": "Normas",
                         "institution": "minsa_normas_pe",
                         "metadata": json.dumps({
                             "url_detalle": url,

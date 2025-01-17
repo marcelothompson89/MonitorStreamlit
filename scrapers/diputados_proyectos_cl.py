@@ -64,6 +64,7 @@ async def scrape_diputados_proyectos():
                             "source_type": "diputados_proyectos_cl",
                             "country": "Chile",
                             "presentation_date": fecha,
+                            "category": "Proyectos de Ley",
                             "institution": "diputados_proyectos_cl",
                             "metadata": json.dumps({
                                 "boletin": boletin,

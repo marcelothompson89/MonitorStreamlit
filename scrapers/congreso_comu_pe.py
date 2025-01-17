@@ -52,10 +52,11 @@ async def scrape_congreso():
                     item = {
                         'title': titulo,
                         'description': descripcion_texto,
-                        'source_type': 'NOTICIAS',
+                        'source_type': 'Congreso Perú',
                         'country': 'Perú',
                         'source_url': enlace,
                         'presentation_date': fecha,
+                        'category': "Comunicaciones",
                         'metadata': {
                             'fecha_completa': fecha_str
                         },

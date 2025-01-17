@@ -98,6 +98,7 @@ async def scrape_senado_noticias():
                         "source_type": "senado_noticias_cl",
                         "country": "Chile",
                         "presentation_date": fecha,
+                        "category": "Noticias",
                         "institution": "senado_noticias_cl",
                         "metadata": json.dumps({
                             "categoria": categoria,

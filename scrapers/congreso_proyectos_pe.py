@@ -172,6 +172,7 @@ async def scrape_congreso_proyectos():
                     "source_url": href,
                     "source_type": "congreso_proyectos_pe",
                     "country": "Perú",
+                    "category": "Proyectos de Ley",
                     "presentation_date": fecha,
                     "institution": "congreso_proyectos_pe",
                     "metadata": json.dumps({

@@ -47,6 +47,7 @@ async def get_month_news(soup, month_number, year):
                     'source_url': noticia_url,
                     'source_type': 'DIGESA',
                     'presentation_date': fecha,
+                    'category': 'Noticias',
                     'institution': 'DIGESA_noticias_pe',
                     'metadata': json.dumps(metadata)
                 }
