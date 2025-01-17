@@ -3,6 +3,7 @@ import streamlit as st
 import sys
 import os
 import datetime
+from subprocess import run, CalledProcessError  # Para ejecutar comandos del sistema
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -11,7 +12,25 @@ from database.models import Alerta, User, Keyword
 
 
 def main():
-    st.title("Listado de Alertas")
+    # Diseño con columnas para el título y el botón de actualización
+    col1, col2 = st.columns([8, 2])
+    with col1:
+        st.title("Listado de Alertas")
+    with col2:
+        if st.button("Actualizar App"):
+            st.warning("Actualizando la aplicación...")
+
+            # Ejecutar git pull para obtener los últimos cambios
+            try:
+                result = run(["git", "pull"], capture_output=True, text=True, check=True)
+                st.success("Actualización completada. Recargando la app...")
+                st.write(result.stdout)  # Muestra el resultado del git pull
+            except CalledProcessError as e:
+                st.error("Error al actualizar la aplicación.")
+                st.write(e.stderr)
+
+            # Reiniciar la aplicación
+            st.rerun()  # Usar st.rerun en lugar de st.experimental_rerun
 
     session = SessionLocal()
 

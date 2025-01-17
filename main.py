@@ -16,6 +16,7 @@ from scrapers.ispch_resoluciones_cl import scrape_ispch_resoluciones
 from scrapers.minsa_normas_pe import scrape_minsa_normas
 from scrapers.minsa_noticias_pe import scrape_minsa_noticias
 from scrapers.senado_noticias_cl import scrape_senado_noticias
+from scrapers.anvisa_normas_br import scrape_anvisa
 
 # DB
 from database.db import SessionLocal, engine
@@ -121,6 +122,10 @@ async def run_scrapers():
         # 13. SENADO PERU NOTICIAS
         senado_noticias_items = await scrape_senado_noticias()
         save_items(senado_noticias_items, "Senado Noticias_CL")
+
+        # 14. ANVISA NORMAS BRASIL
+        anvisa_normas_items = await scrape_anvisa()
+        save_items(anvisa_normas_items, "ANVISA Normas_BR")
 
     except Exception as e:
         print(f"Error en run_scrapers: {str(e)}")
