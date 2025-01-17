@@ -54,15 +54,15 @@ async def scrape_gob_mx_salud():
                 else:
                     presentation_date = None
 
-                # C) Extraer descripción
-                img_tag = articulo.find("img")
-                imagen_url = img_tag["src"] if img_tag else None
-                description = f"{title}\nImagen: {imagen_url}"
+                # # C) Extraer descripción
+                # img_tag = articulo.find("img")
+                # imagen_url = img_tag["src"] if img_tag else None
+                # description = f"{title}\nImagen: {imagen_url}"
 
                 # Crear objeto en el formato esperado
                 item = {
                     'title': title,
-                    'description': description,
+                    'description': title,
                     'source_url': source_url,
                     'source_type': "Ministerio de Salud México",
                     'category': "Noticias",

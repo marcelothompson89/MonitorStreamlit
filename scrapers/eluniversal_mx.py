@@ -48,10 +48,10 @@ async def scrape_el_universal_salud():
                 descripcion_tag = articulo.find("p", class_="story-item__description")
                 description = descripcion_tag.get_text(strip=True) if descripcion_tag else ""
 
-                # D) Extraer imagen
-                img_tag = articulo.find("img")
-                imagen_url = img_tag["src"] if img_tag else None
-                description = f"{description}\nImagen: {imagen_url}" if imagen_url else description
+                # # D) Extraer imagen
+                # img_tag = articulo.find("img")
+                # imagen_url = img_tag["src"] if img_tag else None
+                # description = f"{description}\nImagen: {imagen_url}" if imagen_url else description
 
                 # Crear objeto en el formato esperado
                 item = {

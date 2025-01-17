@@ -50,10 +50,10 @@ async def scrape_animal_politico_salud():
                 if not presentation_date:
                     presentation_date = date.today()
 
-                # D) Extraer imagen
-                img_tag = articulo.find("img")
-                imagen_url = img_tag["src"] if img_tag else None
-                description = f"{description}\nImagen: {imagen_url}" if imagen_url else description
+                # # D) Extraer imagen
+                # img_tag = articulo.find("img")
+                # imagen_url = img_tag["src"] if img_tag else None
+                # description = f"{description}\nImagen: {imagen_url}" if imagen_url else description
 
                 # Crear objeto en el formato esperado
                 item = {

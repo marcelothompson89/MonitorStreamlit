@@ -64,7 +64,7 @@ async def scrape_proceso_mx():
                 # Crear objeto en el formato esperado
                 item = {
                     'title': title,
-                    'description': f"{description}\nImagen: {imagen_url}",
+                    'description': description,
                     'source_url': source_url,
                     'source_type': "Periodico El Proceso",
                     'category': "Noticias",
@@ -84,7 +84,7 @@ async def scrape_proceso_mx():
 
 # if __name__ == "__main__":
 #     # Ejecutar el scraper de forma asíncrona
-#     items = asyncio.run(scrape_proceso())
+#     items = asyncio.run(scrape_proceso_mx())
 
 #     # Imprimir resultados
 #     for item in items:
