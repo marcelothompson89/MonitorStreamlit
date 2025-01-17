@@ -1,36 +1,58 @@
-# app/reporte.py
 import streamlit as st
 import sys
 import os
 import datetime
-from subprocess import run, CalledProcessError  # Para ejecutar comandos del sistema
+from sqlalchemy import create_engine
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.db import SessionLocal
 from database.models import Alerta, User, Keyword
 
+# Inicializar estado para el timestamp de la base de datos
+if "db_last_modified" not in st.session_state:
+    st.session_state.db_last_modified = None
+
+# Función para verificar cambios en la base de datos
+def check_db_update(db_path):
+    """Verifica si el archivo SQLite ha cambiado."""
+    try:
+        last_modified = os.path.getmtime(db_path)  # Timestamp de última modificación
+        if st.session_state.db_last_modified is None:
+            st.session_state.db_last_modified = last_modified
+            return False  # No hay cambios
+        elif last_modified > st.session_state.db_last_modified:
+            st.session_state.db_last_modified = last_modified
+            return True  # Se detectaron cambios
+    except FileNotFoundError:
+        st.error("El archivo de la base de datos no existe.")
+        return False
+    return False
+
+# Fragmento que maneja la recarga manual y automática
+@st.fragment
+def auto_reload_fragment(db_path):
+    # Verificar si la base de datos ha cambiado
+    if check_db_update(db_path):
+        st.warning("Se detectaron cambios en la base de datos. Recargando la app...")
+        st.rerun()
+
+    # Botón para recargar manualmente
+    if st.button("Forzar Recarga"):
+        st.session_state.db_last_modified = os.path.getmtime(db_path)
+        st.rerun()
 
 def main():
-    # Diseño con columnas para el título y el botón de actualización
+    # Ruta al archivo SQLite
+    db_path = "./alerts2.db"
+
+    # Diseño con columnas para el título y el botón de recarga
     col1, col2 = st.columns([8, 2])
     with col1:
         st.title("Listado de Alertas")
     with col2:
-        if st.button("Actualizar App"):
-            st.warning("Actualizando la aplicación...")
-
-            # Ejecutar git pull para obtener los últimos cambios
-            try:
-                result = run(["git", "pull"], capture_output=True, text=True, check=True)
-                st.success("Actualización completada. Recargando la app...")
-                st.write(result.stdout)  # Muestra el resultado del git pull
-            except CalledProcessError as e:
-                st.error("Error al actualizar la aplicación.")
-                st.write(e.stderr)
-
-            # Reiniciar la aplicación
-            st.rerun()  # Usar st.rerun en lugar de st.experimental_rerun
+        # Fragmento de recarga
+        auto_reload_fragment(db_path)
 
     session = SessionLocal()
 
@@ -132,7 +154,6 @@ def main():
         st.write("No hay alertas disponibles con los filtros seleccionados.")
 
     session.close()
-
 
 if __name__ == "__main__":
     main()
