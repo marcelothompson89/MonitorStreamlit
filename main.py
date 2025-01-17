@@ -23,6 +23,13 @@ from scrapers.senado_noti_br import scrape_senado_noticias_br
 from scrapers.minsalud_noti_br import scrape_minsalud_noticias_br
 from scrapers.dou_br import scrape_dou_br
 from scrapers.congreso_normas_br import scrape_congreso_normas_br
+from scrapers.minsalud_noti_mx import scrape_gob_mx_salud
+from scrapers.minsalud_comu_mx import scrape_gob_mx_salud_comu
+from scrapers.cofepris_noti_mx import scrape_cofepris_mx
+from scrapers.animalpolitico_mx import scrape_animal_politico_salud
+from scrapers.eluniversal_mx import scrape_el_universal_salud
+from scrapers.periodico_proceso_mx import scrape_proceso_mx
+
 
 # DB
 from database.db import SessionLocal, engine
@@ -156,6 +163,30 @@ async def run_scrapers():
         # 20. CONGRESO BRASIL NORMAS
         congreso_normas_items = await scrape_congreso_normas_br()
         save_items(congreso_normas_items, "CONGRESO Normas_BR")
+
+        # 21. GOB MX SALUD  
+        gob_mx_salud_items = await scrape_gob_mx_salud()
+        save_items(gob_mx_salud_items, "MINSA Noticias_MX")
+
+        # 22. GOB MX SALUD COMUNICACIONES
+        gob_mx_comunicaciones_items = await scrape_gob_mx_salud_comu()
+        save_items(gob_mx_comunicaciones_items, "MINSA Comunicaciones_MX")
+
+        # 23. COFEPRIS MX NOTICIAS
+        cofepris_mx_items = await scrape_cofepris_mx()
+        save_items(cofepris_mx_items, "COFEPRIS Noticias_MX")
+
+        # 24. ANIMAL POLITICO SALUD
+        animal_politico_salud_items = await scrape_animal_politico_salud()
+        save_items(animal_politico_salud_items, "ANIMAL POLITICO SALUD_MX")
+
+        # 25. EL UNIVERSAL SALUD
+        el_universal_salud_items = await scrape_el_universal_salud()
+        save_items(el_universal_salud_items, "EL UNIVERSAL SALUD_MX")
+
+        # 26. PERIODICO PROCESO
+        proceso_mx_items = await scrape_proceso_mx()
+        save_items(proceso_mx_items, "PERIODICO PROCESO_MX")    
 
     except Exception as e:
         print(f"Error en run_scrapers: {str(e)}")
