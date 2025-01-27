@@ -29,6 +29,13 @@ from scrapers.cofepris_noti_mx import scrape_cofepris_mx
 from scrapers.animalpolitico_mx import scrape_animal_politico_salud
 from scrapers.eluniversal_mx import scrape_el_universal_salud
 from scrapers.periodico_proceso_mx import scrape_proceso_mx
+from scrapers.boletinoficial_ar import scrape_boletin_oficial
+from scrapers.anmat_noti_ar import scrape_anmat_noti_ar
+from scrapers.minsalud_noti_ar import scrape_salud_noticias_ar
+from scrapers.hcdn_ar import scrape_diputados_proyectos_ar
+from scrapers.senado_noti_ar import scrape_senado_eventos
+from scrapers.invima_noti_co import scrape_invima_noticias
+from scrapers.congreso_legislativo_co import scrape_camara_proyectos_co
 
 
 # DB
@@ -187,6 +194,34 @@ async def run_scrapers():
         # 26. PERIODICO PROCESO
         proceso_mx_items = await scrape_proceso_mx()
         save_items(proceso_mx_items, "PERIODICO PROCESO_MX")    
+
+        # 27. BOLETIN OFICIAL ARGENTINA
+        boletin_oficial_items = await scrape_boletin_oficial()
+        save_items(boletin_oficial_items, "BOLETIN OFICIAL_AR")
+
+        # 28. ANMAT NOTICIAS
+        anmat_items = await scrape_anmat_noti_ar()
+        save_items(anmat_items, "ANMAT Noticias_AR")
+
+        # 29. MINSALUD NOTICIAS ARGENTINA
+        minsalud_items = await scrape_salud_noticias_ar()
+        save_items(minsalud_items, "MINSALUD Noticias_AR")
+
+        # 30. DIPUTADOS PROYECTOS ARGENTINA
+        diputados_proyectos_items = await scrape_diputados_proyectos_ar()
+        save_items(diputados_proyectos_items, "DIPUTADOS PROYECTOS_AR")
+
+        # 31. SENADO EVENTOS ARGENTINA
+        senado_eventos_items = await scrape_senado_eventos()
+        save_items(senado_eventos_items, "SENADO EVENTOS_AR")
+
+        # 32. INVIMA NOTICIAS COLOMBIA
+        invima_noticias_items = await scrape_invima_noticias()
+        save_items(invima_noticias_items, "INVIMA Noticias_CO")
+
+        # 33. CONGRESO LEGISLATIVO COLOMBIA
+        camara_proyectos_items = await scrape_camara_proyectos_co()
+        save_items(camara_proyectos_items, "CONGRESO LEGISLATIVO_CO")
 
     except Exception as e:
         print(f"Error en run_scrapers: {str(e)}")
