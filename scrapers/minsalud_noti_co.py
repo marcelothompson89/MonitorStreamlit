@@ -3,30 +3,43 @@ from bs4 import BeautifulSoup
 import asyncio
 from datetime import datetime, date
 
-
 async def scrape_minsalud_news():
     """
     Scraper para las noticias del Ministerio de Salud utilizando Playwright.
     """
     base_url = "https://www.minsalud.gov.co"
-    url = "https://www.minsalud.gov.co/CC/Paginas/noticias-2024.aspx"
+    url = "https://www.minsalud.gov.co/CC/Paginas/noticias-2025.aspx"
     items = []
 
     async with async_playwright() as p:
-        # Lanzar navegador en modo headless
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=True)  # Cambiar a False si deseas ver el navegador
         page = await browser.new_page()
-        await page.goto(url)
 
-        # Esperar a que el contenedor de noticias se cargue
-        await page.wait_for_selector("#cbqwpctl00_ctl53_g_0e2217c2_285e_469e_a426_7d7dc98da0a4")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                print(f"[MINSALUD NOTICIAS_CO] Intentando cargar la página (Intento {attempt + 1}/{max_retries})...")
+                await page.goto(url, timeout=60000)  # Aumentar timeout a 60s
+                await page.wait_for_load_state("domcontentloaded")  # Esperar que el DOM esté cargado
+                print("[MINSALUD NOTICIAS_CO] Página cargada correctamente ✅")
+                break
+            except Exception as e:
+                print(f"[MINSALUD NOTICIAS_CO] ❌ Error al cargar la página: {e}")
+                if attempt == max_retries - 1:
+                    print("[MINSALUD NOTICIAS_CO] ⚠ No se pudo cargar la página tras varios intentos, abortando scraper.")
+                    await browser.close()
+                    return []
+
+        # Buscar el contenedor de noticias
+        print("[MINSALUD NOTICIAS_CO] Buscando contenedor de noticias...")
+        noticias_container = "div[class*='cbq-layout-main']"  # Se detectó que funciona correctamente
 
         # Extraer el contenido HTML renderizado
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
 
-        # Buscar noticias dentro del div con el ID relevante
-        noticias_div = soup.find("div", id="cbqwpctl00_ctl53_g_0e2217c2_285e_469e_a426_7d7dc98da0a4")
+        # Buscar noticias dentro del contenedor encontrado
+        noticias_div = soup.select_one(noticias_container)
         noticias = noticias_div.find_all("div", class_="link-item") if noticias_div else []
 
         for noticia in noticias:
@@ -35,15 +48,19 @@ async def scrape_minsalud_news():
                 titulo_a = noticia.find("a")
                 title = titulo_a.get_text(strip=True) if titulo_a else "SIN TÍTULO"
                 enlace_relativo = titulo_a["href"] if titulo_a else None
-                source_url = f"{base_url}{enlace_relativo}" if enlace_relativo else None
 
-                # B) Extraer descripción
+                # Evitar duplicación del dominio en la URL
+                if enlace_relativo and not enlace_relativo.startswith("http"):
+                    source_url = f"{base_url}{enlace_relativo}"
+                else:
+                    source_url = enlace_relativo  # Ya es una URL completa
+
+                # B) Extraer descripción (posiblemente contiene la fecha)
                 fecha_div = noticia.find("div", class_="description")
                 description = fecha_div.get_text(strip=True) if fecha_div else ""
 
-                # C) Extraer fecha
-                fecha_texto = description  # La fecha está dentro de la descripción
-                presentation_date = _parse_date(fecha_texto)
+                # C) Extraer fecha de publicación
+                presentation_date = _parse_date(description)
 
                 # Si no se encuentra una fecha válida, usar la fecha actual
                 if not presentation_date:
@@ -69,24 +86,21 @@ async def scrape_minsalud_news():
 
     return items
 
-
 def _parse_date(date_str):
     """
-    Parsear una fecha en formato conocido como "06/01/2025" o similar.
+    Intenta extraer la fecha en formato "06/01/2025" o similar desde un texto.
     """
     if not date_str:
         return None
-    try:
-        # Intentar parsear con formato dd/mm/yyyy
-        return datetime.strptime(date_str, "%d/%m/%Y").date()
-    except ValueError:
-        return None
+    
+    # Buscar fechas en formato dd/mm/yyyy dentro del texto
+    match = datetime.strptime(date_str.strip(), "%Y-%m-%d") if len(date_str.strip()) == 10 else None
+    if match:
+        return match.date()
+    
+    return None
 
-
-if __name__ == "__main__":
-    # Ejecutar el scraper de forma asíncrona
-    items = asyncio.run(scrape_minsalud_news())
-
-    # Imprimir resultados
-    for item in items:
-        print(item)
+# # Ejecutar el scraper
+# if __name__ == "__main__":
+#     items = asyncio.run(scrape_minsalud_news())
+#     print(items)

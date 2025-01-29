@@ -1,8 +1,7 @@
-# main.py
 import asyncio
 from sqlalchemy.exc import IntegrityError
 
-# Scrapers
+# Importar los scrapers
 from scrapers.anamed_cl import scrape_anamed
 from scrapers.congreso_comu_pe import scrape_congreso
 from scrapers.digemid_pe import scrape_digemid_noticias
@@ -36,198 +35,110 @@ from scrapers.hcdn_ar import scrape_diputados_proyectos_ar
 from scrapers.senado_noti_ar import scrape_senado_eventos
 from scrapers.invima_noti_co import scrape_invima_noticias
 from scrapers.congreso_legislativo_co import scrape_camara_proyectos_co
-
+from scrapers.minsalud_resol_co import scrape_minsalud_resoluciones
+from scrapers.minsalud_decre_co import scrape_minsalud_decre
+from scrapers.minsalud_noti_co import scrape_minsalud_news
+from scrapers.paho_noti_reg import scrape_paho_noticias
+from scrapers.parlatino_reg import scrape_parlatino
+from scrapers.cepal_reg import scrape_cepal_noticias
+from scrapers.wto_eping_glo import scrape_eping
 
 # DB
 from database.db import SessionLocal, engine
 from database.models import Base, Alerta
 
 async def run_scrapers():
-    # Crea las tablas si no existen
+    """Ejecuta los scrapers sin detener el proceso en caso de fallas."""
+    
     Base.metadata.create_all(bind=engine)
-
-    # Usamos el contexto síncrono normal
     session = SessionLocal()
-    
-    def save_items(items, source_name):
-        saved_count = 0
-        duplicate_count = 0
-        
-        for item in items:
-            # Extraer los valores de metadata si es un diccionario
-            metadata = item.get("metadata", {})
-            if isinstance(metadata, dict):
-                metadata_nota_url = metadata.get("nota_url")
-                metadata_publicacion_url = metadata.get("publicacion_url")
-            else:
-                metadata_nota_url = metadata
-                metadata_publicacion_url = None
 
-            alerta = Alerta(
-                title=item.get("title"),
-                description=item.get("description"),
-                source_type=item.get("source_type"),
-                category=item.get("category"),
-                country=item.get("country"),
-                source_url=item.get("source_url"),
-                institution=item.get("institution"),
-                presentation_date=item.get("presentation_date"),
-                metadata_nota_url=metadata_nota_url,
-                metadata_publicacion_url=metadata_publicacion_url
-            )
-            try:
-                session.add(alerta)
-                session.commit()
-                saved_count += 1
-            except IntegrityError:
-                session.rollback()
-                duplicate_count += 1
-                continue
-            
-        print(f"[{source_name}] Se encontraron {len(items)} noticias")
-        if duplicate_count > 0:
-            print(f"[{source_name}] {duplicate_count} noticias duplicadas ignoradas")
-        if saved_count > 0:
-            print(f"[{source_name}] {saved_count} noticias nuevas guardadas")
-    
-    try:
-        # 1. ANAMED
-        anamed_items = await scrape_anamed()
-        save_items(anamed_items, "ANAMED_CL")
+    scrapers = [
+        ("ANAMED_CL", scrape_anamed),
+        ("CONGRESO_PE", scrape_congreso),
+        ("DIGEMID_PE", scrape_digemid_noticias),
+        ("DIGESA Comunicaciones_PE", scrape_digesa_comunicaciones),
+        ("DIGESA Noticias_PE", scrape_digesa_noticias),
+        ("Diputados Noticias_CL", scrape_diputados_noticias),
+        ("Diputados Proyectos_CL", scrape_diputados_proyectos),
+        ("CONGRESO Proyectos_PE", scrape_congreso_proyectos),
+        ("ISPCH Noticias_CL", scrape_ispch_noticias),
+        ("ISPCH Resoluciones_CL", scrape_ispch_resoluciones),
+        ("MINSA Normas_PE", scrape_minsa_normas),
+        ("MINSA Noticias_PE", scrape_minsa_noticias),
+        ("Senado Noticias_CL", scrape_senado_noticias),
+        ("ANVISA Normas_BR", scrape_anvisa),
+        ("ANVISA Noticias_BR", scrape_anvisa_noticias),
+        ("Diputados Noticias_BR", scrape_camara_noticias_br),
+        ("Senado Noticias_BR", scrape_senado_noticias_br),
+        ("MINSA Noticias_BR", scrape_minsalud_noticias_br),
+        ("DOU Normas_BR", scrape_dou_br),
+        ("CONGRESO Normas_BR", scrape_congreso_normas_br),
+        ("MINSA Noticias_MX", scrape_gob_mx_salud),
+        ("MINSA Comunicaciones_MX", scrape_gob_mx_salud_comu),
+        ("COFEPRIS Noticias_MX", scrape_cofepris_mx),
+        ("ANIMAL POLITICO SALUD_MX", scrape_animal_politico_salud),
+        ("EL UNIVERSAL SALUD_MX", scrape_el_universal_salud),
+        ("PERIODICO PROCESO_MX", scrape_proceso_mx),
+        ("BOLETIN OFICIAL_AR", scrape_boletin_oficial),
+        ("ANMAT Noticias_AR", scrape_anmat_noti_ar),
+        ("MINSALUD Noticias_AR", scrape_salud_noticias_ar),
+        ("DIPUTADOS PROYECTOS_AR", scrape_diputados_proyectos_ar),
+        ("SENADO EVENTOS_AR", scrape_senado_eventos),
+        ("INVIMA Noticias_CO", scrape_invima_noticias),
+        ("CONGRESO LEGISLATIVO_CO", scrape_camara_proyectos_co),
+        ("MINSALUD RESOLUCIONES_CO", scrape_minsalud_resoluciones),
+        ("MINSALUD DECRETOS_CO", scrape_minsalud_decre),
+        ("MINSALUD NOTICIAS_CO", scrape_minsalud_news),
+        ("PAHO NOTICIAS_REG", scrape_paho_noticias),
+        ("PARLATINO NOTICIAS_REG", scrape_parlatino),
+        ("CEPAL NOTICIAS_REG", scrape_cepal_noticias),
+        ("WTO EPING GLOBAL", scrape_eping),
+    ]
 
-        # 2. CONGRESO
-        congreso_items = await scrape_congreso()
-        save_items(congreso_items, "CONGRESO_PE")
+    async def execute_scraper(name, scraper_function):
+        try:
+            print(f"[{name}] Ejecutando scraper...")
+            items = await scraper_function()
+            if items:
+                save_items(items, name, session)
+            print(f"[{name}] Finalizado correctamente ✅")
+        except Exception as e:
+            print(f"[{name}] ❌ Error en scraper: {str(e)}")
 
-        # 3. DIGEMID
-        digemid_items = await scrape_digemid_noticias()
-        save_items(digemid_items, "DIGEMID_PE")
+    async def execute_all_scrapers():
+        """Ejecuta los scrapers de forma secuencial, pero maneja errores individualmente."""
+        tasks = [execute_scraper(name, func) for name, func in scrapers]
+        await asyncio.gather(*tasks)  # Ejecuta en paralelo para mayor eficiencia
 
-        # 4. DIGESA COMUNICACIONES
-        digesa_comu_items = await scrape_digesa_comunicaciones()
-        save_items(digesa_comu_items, "DIGESA Comunicaciones_PE")
+    await execute_all_scrapers()
+    session.close()
 
-        # 5. DIGESA NOTICIAS
-        digesa_noti_items = await scrape_digesa_noticias()
-        save_items(digesa_noti_items, "DIGESA Noticias_PE")
+def save_items(items, source_name, session):
+    """Guarda los ítems en la base de datos y maneja duplicados."""
+    saved_count = 0
+    duplicate_count = 0
 
-        # 6. DIPUTADOS CHILE NOTICIAS
-        diputados_items = await scrape_diputados_noticias()
-        save_items(diputados_items, "Diputados Noticias_CL")
+    for item in items:
+        alerta = Alerta(
+            title=item.get("title"),
+            description=item.get("description"),
+            source_type=item.get("source_type"),
+            category=item.get("category"),
+            country=item.get("country"),
+            source_url=item.get("source_url"),
+            institution=item.get("institution"),
+            presentation_date=item.get("presentation_date"),
+        )
+        try:
+            session.add(alerta)
+            session.commit()
+            saved_count += 1
+        except IntegrityError:
+            session.rollback()
+            duplicate_count += 1
 
-        # 7. DIPUTADOS CHILE PROYECTOS
-        diputados_proyectos_items = await scrape_diputados_proyectos()
-        save_items(diputados_proyectos_items, "Diputados Proyectos_CL")
-
-        # 8. CONGRESO PERU PROYECTOS
-        congreso_proyectos_items = await scrape_congreso_proyectos()
-        save_items(congreso_proyectos_items, "CONGRESO Proyectos_PE")
-
-        # 9. ISPCH CHILE NOTICIAS
-        ispch_noticias_items = await scrape_ispch_noticias()
-        save_items(ispch_noticias_items, "ISPCH Noticias_CL")
-
-        # 10. ISPCH CHILE RESOLUCIONES
-        ispch_resoluciones_items = await scrape_ispch_resoluciones()
-        save_items(ispch_resoluciones_items, "ISPCH Resoluciones_CL")
-
-        # 11. MINSA PERU NORMAS
-        minsa_normas_items = await scrape_minsa_normas()
-        save_items(minsa_normas_items, "MINSA Normas_PE")
-
-        # 12. MINSA PERU NOTICIAS
-        minsa_noticias_items = await scrape_minsa_noticias()
-        save_items(minsa_noticias_items, "MINSA Noticias_PE")
-
-        # 13. SENADO PERU NOTICIAS
-        senado_noticias_items = await scrape_senado_noticias()
-        save_items(senado_noticias_items, "Senado Noticias_CL")
-
-        # 14. ANVISA NORMAS BRASIL
-        anvisa_normas_items = await scrape_anvisa()
-        save_items(anvisa_normas_items, "ANVISA Normas_BR")
-
-        # 15. ANVISA NOTICIAS BRASIL
-        anvisa_noticias_items = await scrape_anvisa_noticias()
-        save_items(anvisa_noticias_items, "ANVISA Noticias_BR")
-
-        # 16. CAMARA BRASIL NOTICIAS
-        camara_noticias_items = await scrape_camara_noticias_br()
-        save_items(camara_noticias_items, "Diputados Noticias_BR")
-
-        # 17. SENADO BRASIL NOTICIAS
-        senado_noticias_items = await scrape_senado_noticias_br()
-        save_items(senado_noticias_items, "Senado Noticias_BR")
-
-        # 18. MINSA BRASIL NOTICIAS
-        minsa_noticias_items = await scrape_minsalud_noticias_br()
-        save_items(minsa_noticias_items, "MINSA Noticias_BR")
-
-        # 19. DOU BRASIL NOTICIAS
-        dou_noticias_items = await scrape_dou_br()
-        save_items(dou_noticias_items, "DOU Normas_BR")
-
-        # 20. CONGRESO BRASIL NORMAS
-        congreso_normas_items = await scrape_congreso_normas_br()
-        save_items(congreso_normas_items, "CONGRESO Normas_BR")
-
-        # 21. GOB MX SALUD  
-        gob_mx_salud_items = await scrape_gob_mx_salud()
-        save_items(gob_mx_salud_items, "MINSA Noticias_MX")
-
-        # 22. GOB MX SALUD COMUNICACIONES
-        gob_mx_comunicaciones_items = await scrape_gob_mx_salud_comu()
-        save_items(gob_mx_comunicaciones_items, "MINSA Comunicaciones_MX")
-
-        # 23. COFEPRIS MX NOTICIAS
-        cofepris_mx_items = await scrape_cofepris_mx()
-        save_items(cofepris_mx_items, "COFEPRIS Noticias_MX")
-
-        # 24. ANIMAL POLITICO SALUD
-        animal_politico_salud_items = await scrape_animal_politico_salud()
-        save_items(animal_politico_salud_items, "ANIMAL POLITICO SALUD_MX")
-
-        # 25. EL UNIVERSAL SALUD
-        el_universal_salud_items = await scrape_el_universal_salud()
-        save_items(el_universal_salud_items, "EL UNIVERSAL SALUD_MX")
-
-        # 26. PERIODICO PROCESO
-        proceso_mx_items = await scrape_proceso_mx()
-        save_items(proceso_mx_items, "PERIODICO PROCESO_MX")    
-
-        # 27. BOLETIN OFICIAL ARGENTINA
-        boletin_oficial_items = await scrape_boletin_oficial()
-        save_items(boletin_oficial_items, "BOLETIN OFICIAL_AR")
-
-        # 28. ANMAT NOTICIAS
-        anmat_items = await scrape_anmat_noti_ar()
-        save_items(anmat_items, "ANMAT Noticias_AR")
-
-        # 29. MINSALUD NOTICIAS ARGENTINA
-        minsalud_items = await scrape_salud_noticias_ar()
-        save_items(minsalud_items, "MINSALUD Noticias_AR")
-
-        # 30. DIPUTADOS PROYECTOS ARGENTINA
-        diputados_proyectos_items = await scrape_diputados_proyectos_ar()
-        save_items(diputados_proyectos_items, "DIPUTADOS PROYECTOS_AR")
-
-        # 31. SENADO EVENTOS ARGENTINA
-        senado_eventos_items = await scrape_senado_eventos()
-        save_items(senado_eventos_items, "SENADO EVENTOS_AR")
-
-        # 32. INVIMA NOTICIAS COLOMBIA
-        invima_noticias_items = await scrape_invima_noticias()
-        save_items(invima_noticias_items, "INVIMA Noticias_CO")
-
-        # 33. CONGRESO LEGISLATIVO COLOMBIA
-        camara_proyectos_items = await scrape_camara_proyectos_co()
-        save_items(camara_proyectos_items, "CONGRESO LEGISLATIVO_CO")
-
-    except Exception as e:
-        print(f"Error en run_scrapers: {str(e)}")
-        raise e
-    finally:
-        session.close()
+    print(f"[{source_name}] Guardado: {saved_count} | Duplicados: {duplicate_count}")
 
 def main():
     asyncio.run(run_scrapers())
