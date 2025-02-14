@@ -26,19 +26,24 @@ jobs:
           sudo apt update
           sudo apt install -y google-chrome-stable
 
-      # 4. Instalar dependencias de Python (incluye Selenium y webdriver-manager)
+      # 4. Instalar dependencias de Python (incluye Selenium, Playwright y webdriver-manager)
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install selenium webdriver-manager
+          pip install selenium webdriver-manager playwright  # Se instala Playwright
 
-      # 5. Verificar instalación de SQLAlchemy
+      # 5. Instalar navegadores de Playwright
+      - name: Install Playwright browsers
+        run: |
+          playwright install --with-deps  # Asegura la instalación completa de los navegadores
+
+      # 6. Verificar instalación de SQLAlchemy
       - name: Verify SQLAlchemy installation
         run: |
           python -m pip show sqlalchemy || python -m pip install sqlalchemy
 
-      # 6. Verificar la base de datos SQLite
+      # 7. Verificar la base de datos SQLite
       - name: Check SQLite database
         run: |
           if [ ! -f "./alerts2.db" ]; then
@@ -46,11 +51,11 @@ jobs:
             touch alerts2.db
           fi
 
-      # 7. Ejecutar el script principal
+      # 8. Ejecutar el script principal
       - name: Run main.py
         run: python main.py
 
-      # 8. Subir cambios de SQLite al repositorio
+      # 9. Subir cambios de SQLite al repositorio
       - name: Commit and push updated SQLite
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
