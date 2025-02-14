@@ -1,10 +1,8 @@
 import asyncio
 import json
-import os
-import platform
 import time
 import re
-from datetime import datetime, date
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -12,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementClickInterceptedException
+from webdriver_manager.chrome import ChromeDriverManager  # Importar webdriver-manager
 
 def extract_date_from_text(date_text, year="2025"):
     """ Convierte una fecha tipo '8 de enero' en un objeto datetime.date. """
@@ -50,14 +49,10 @@ async def scrape_minsalud_resoluciones():
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
-    # Detectar el sistema operativo y seleccionar el Chromedriver correcto
-    chromedriver_path = (
-        os.path.join(os.path.dirname(__file__), "../bin/chromedriver.exe")
-        if platform.system() == "Windows"
-        else os.path.join(os.path.dirname(__file__), "../bin/chromedriver")
-    )
+    # Usar WebDriver Manager para obtener la versión correcta de ChromeDriver
+    service = Service(ChromeDriverManager().install())
 
-    service = Service(chromedriver_path)
+    driver = None  # Inicializar driver antes del try para evitar errores
 
     try:
         driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -107,7 +102,7 @@ async def scrape_minsalud_resoluciones():
             driver.execute_script("arguments[0].click();", expand_button)
             time.sleep(2)
 
-        # Esperar explícitamente hasta que el tbody se cargue
+        # Esperar hasta que el tbody se cargue
         try:
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "tbody[isloaded='true']")))
             time.sleep(2)
@@ -117,9 +112,6 @@ async def scrape_minsalud_resoluciones():
         tbody_2025 = None
         tbodies = driver.find_elements(By.CSS_SELECTOR, "tbody[isloaded='true']")
         for tbody in tbodies:
-            if tbody.value_of_css_property("display") == "none":
-                driver.execute_script("arguments[0].style.display = 'block';", tbody)
-
             rows = tbody.find_elements(By.TAG_NAME, "tr")
             if rows and "2025" in rows[0].text:
                 tbody_2025 = tbody
@@ -152,11 +144,11 @@ async def scrape_minsalud_resoluciones():
                 item = {
                     "title": title,
                     "description": f"Resolución {year} - {description}",
-                    "source_url": f"https://www.minsalud.gov.co{url}" if url else None,
+                    "source_url": url,
                     "source_type": "Ministerio Salud Resoluciones Colombia",
                     "country": "Colombia",
                     "category": "Resoluciones",
-                    "presentation_date": extracted_date,  # Ahora es un objeto datetime.date
+                    "presentation_date": extracted_date,
                     "institution": "Ministerio Salud Colombia",
                     "metadata": json.dumps({"año": year, "categoría": category})
                 }
@@ -171,15 +163,20 @@ async def scrape_minsalud_resoluciones():
         return items
 
     finally:
-        driver.quit()
-        print("[Minsalud_Resoluciones_CO] Navegador cerrado")
+        if driver:
+            driver.quit()
+            print("[Minsalud_Resoluciones_CO] Navegador cerrado")
 
-# Ejecutar el scraper y mostrar los datos en JSON
-if __name__ == "__main__":
-    items = asyncio.run(scrape_minsalud_resoluciones())
-    print(json.dumps(
-        [{**item, "presentation_date": item["presentation_date"].strftime("%Y-%m-%d") if item["presentation_date"] else None}
-         for item in items], 
-        indent=4, ensure_ascii=False
-    ))
+# if __name__ == "__main__":
+#     items = asyncio.run(scrape_minsalud_resoluciones())
+    
+#     # Convertir objetos date a string en formato "YYYY-MM-DD"
+#     json_output = json.dumps(
+#         [{**item, "presentation_date": item["presentation_date"].strftime("%Y-%m-%d") if item["presentation_date"] else None}
+#          for item in items], 
+#         indent=4, 
+#         ensure_ascii=False
+#     )
+    
+#     print(json_output)
 

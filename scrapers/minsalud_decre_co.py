@@ -1,10 +1,8 @@
 import asyncio
 import json
-import os
-import platform
 import time
 import re
-from datetime import datetime, date
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -12,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from webdriver_manager.chrome import ChromeDriverManager  # Importar webdriver-manager
 
 def extract_date_from_title(title):
     """ Extrae la fecha en formato '07 de enero de 2025' del título y la convierte a un objeto datetime.date. """
@@ -50,14 +49,10 @@ async def scrape_minsalud_decre():
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
-    # Detectar el sistema operativo y seleccionar el Chromedriver correcto
-    chromedriver_path = (
-        os.path.join(os.path.dirname(__file__), "../bin/chromedriver.exe")
-        if platform.system() == "Windows"
-        else os.path.join(os.path.dirname(__file__), "../bin/chromedriver")
-    )
+    # Usar WebDriver Manager para obtener la versión correcta de ChromeDriver
+    service = Service(ChromeDriverManager().install())
 
-    service = Service(chromedriver_path)
+    driver = None  # Inicializar driver antes del try para evitar errores
 
     try:
         driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -95,6 +90,8 @@ async def scrape_minsalud_decre():
             return []
 
         print("[Minsalud_Decretos_CO] Expandiendo la sección de 2025...")
+        driver.execute_script("arguments[0].scrollIntoView(true);", expand_button)
+        time.sleep(1)
         expand_button.click()
         time.sleep(3)
 
@@ -148,7 +145,7 @@ async def scrape_minsalud_decre():
                 item = {
                     "title": title,
                     "description": f"Decreto {year} - {description}",
-                    "source_url": f"https://www.minsalud.gov.co{url}" if url else None,
+                    "source_url": url,
                     "source_type": "Ministerio Salud Decretos Colombia",
                     "country": "Colombia",
                     "category": "Decretos",
@@ -171,16 +168,19 @@ async def scrape_minsalud_decre():
         return items
 
     finally:
-        driver.quit()
-        print("[Minsalud_Decretos_CO] Navegador cerrado")
+        if driver:
+            driver.quit()
+            print("[Minsalud_Decretos_CO] Navegador cerrado")
 
-# Ejecutar el scraper y mostrar los datos en formato JSON
-if __name__ == "__main__":
-    items = asyncio.run(scrape_minsalud_decre())
+# # Ejecutar el scraper y mostrar los datos en formato JSON
+# if __name__ == "__main__":
+#     items = asyncio.run(scrape_minsalud_decre())
 
-    # Convertir `presentation_date` a string antes de imprimir
-    print(json.dumps(
-        [{**item, "presentation_date": item["presentation_date"].strftime("%Y-%m-%d") if item["presentation_date"] else None}
-         for item in items], 
-        indent=4, ensure_ascii=False
-    ))
+#     # Convertir `presentation_date` a string antes de imprimir
+#     json_output = json.dumps(
+#         [{**item, "presentation_date": item["presentation_date"].strftime("%Y-%m-%d") if item["presentation_date"] else None}
+#          for item in items], 
+#         indent=4, ensure_ascii=False
+#     )
+
+#     print(json_output)

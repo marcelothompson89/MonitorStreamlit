@@ -1,7 +1,7 @@
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 import asyncio
-from datetime import datetime
+from datetime import datetime, date
 
 
 async def scrape_el_universal_salud():
@@ -14,62 +14,64 @@ async def scrape_el_universal_salud():
 
     async with async_playwright() as p:
         # Lanzar navegador en modo headless
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto(url)
+        browser = await p.chromium.launch(headless=True)  # Cambiar a False para ver el navegador
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            viewport={"width": 1280, "height": 800},
+            extra_http_headers={
+                "Accept-Language": "es-ES,es;q=0.9",
+                "Referer": base_url
+            }
+        )
+        page = await context.new_page()
 
-        # Esperar a que los artículos se carguen
-        await page.wait_for_selector(".paginated-list .story-item")
+        try:
+            await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+            await page.wait_for_selector(".paginated-list .story-item", timeout=60000)
 
-        # Extraer el contenido HTML renderizado
-        html = await page.content()
-        soup = BeautifulSoup(html, "html.parser")
+            # Extraer el contenido HTML renderizado
+            html = await page.content()
+            soup = BeautifulSoup(html, "html.parser")
 
-        # Buscar artículos dentro del contenedor principal
-        contenedor = soup.find("div", class_="paginated-list")
-        articulos = contenedor.find_all("article", class_="story-item") if contenedor else []
+            # Buscar artículos dentro del contenedor principal
+            contenedor = soup.find("div", class_="paginated-list")
+            articulos = contenedor.find_all("article", class_="story-item") if contenedor else []
 
-        for articulo in articulos:
-            try:
-                # A) Extraer título y enlace
-                titulo_tag = articulo.find("h2", class_="story-item__title").find("a")
-                title = titulo_tag.get_text(strip=True) if titulo_tag else "SIN TÍTULO"
-                enlace_relativo = titulo_tag["href"] if titulo_tag else None
-                source_url = f"{base_url}{enlace_relativo}" if enlace_relativo else None
+            for articulo in articulos:
+                try:
+                    # A) Extraer título y enlace
+                    titulo_tag = articulo.find("h2", class_="story-item__title").find("a")
+                    title = titulo_tag.get_text(strip=True) if titulo_tag else "SIN TÍTULO"
+                    enlace_relativo = titulo_tag["href"] if titulo_tag else None
+                    source_url = f"{base_url}{enlace_relativo}" if enlace_relativo else None
 
-                # B) Extraer fecha
-                fecha_tag = articulo.find("span", class_="story-item__time-cont")
-                fecha_texto = fecha_tag.get_text(strip=True) if fecha_tag else None
+                    # B) Extraer fecha
+                    fecha_tag = articulo.find("span", class_="story-item__time-cont")
+                    fecha_texto = fecha_tag.get_text(strip=True) if fecha_tag else None
+                    presentation_date = _parse_date(fecha_texto)
 
-                # Parsear fecha
-                presentation_date = _parse_date(fecha_texto)
+                    # C) Extraer descripción
+                    descripcion_tag = articulo.find("p", class_="story-item__description")
+                    description = descripcion_tag.get_text(strip=True) if descripcion_tag else ""
 
-                # C) Extraer descripción
-                descripcion_tag = articulo.find("p", class_="story-item__description")
-                description = descripcion_tag.get_text(strip=True) if descripcion_tag else ""
+                    # Crear objeto en el formato esperado
+                    item = {
+                        'title': title,
+                        'description': description,
+                        'source_url': source_url,
+                        'source_type': "El Universal periódico",
+                        'category': "Noticias",
+                        'country': "México",
+                        'institution': "El Universal",
+                        'presentation_date': presentation_date,
+                    }
 
-                # # D) Extraer imagen
-                # img_tag = articulo.find("img")
-                # imagen_url = img_tag["src"] if img_tag else None
-                # description = f"{description}\nImagen: {imagen_url}" if imagen_url else description
+                    items.append(item)
+                except:
+                    continue  # Ignorar errores individuales en artículos
 
-                # Crear objeto en el formato esperado
-                item = {
-                    'title': title,
-                    'description': description,
-                    'source_url': source_url,
-                    'source_type': "El Universal periodico",
-                    'category': "Noticias",
-                    'country': "México",
-                    'institution': "El Universal",
-                    'presentation_date': presentation_date,
-                }
-
-                items.append(item)
-            except Exception as e:
-                print(f"Error procesando artículo: {e}")
-
-        await browser.close()
+        finally:
+            await browser.close()
 
     return items
 
@@ -81,7 +83,6 @@ def _parse_date(date_str):
     if not date_str:
         return None
     try:
-        # Parsear fecha en formato dd/mm/yyyy
         return datetime.strptime(date_str, "%d/%m/%Y").date()
     except ValueError:
         return None
