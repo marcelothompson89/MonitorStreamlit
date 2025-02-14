@@ -38,18 +38,34 @@ jobs:
           pip install playwright --force-reinstall
           playwright install
 
-      # 6. Instalar dependencias de Python
+      # 6. Instalar Google Chrome
+      - name: Install Google Chrome
+        run: |
+          sudo apt update
+          sudo apt install -y google-chrome-stable
+
+      # 7. Instalar ChromeDriver compatible con Google Chrome
+      - name: Install ChromeDriver
+        run: |
+          CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1)
+          wget -q "https://chromedriver.storage.googleapis.com/$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION})/chromedriver_linux64.zip"
+          unzip chromedriver_linux64.zip
+          sudo mv chromedriver /usr/local/bin/
+          rm chromedriver_linux64.zip
+
+      # 8. Instalar dependencias de Python (incluye webdriver-manager y Selenium)
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install selenium webdriver-manager
 
-      # 7. Verificar instalación de sqlalchemy
+      # 9. Verificar instalación de sqlalchemy
       - name: Verify SQLAlchemy installation
         run: |
           python -m pip show sqlalchemy || python -m pip install sqlalchemy
 
-      # 8. Verificar la base de datos SQLite
+      # 10. Verificar la base de datos SQLite
       - name: Check SQLite database
         run: |
           if [ ! -f "./alerts2.db" ]; then
@@ -57,11 +73,11 @@ jobs:
             touch alerts2.db
           fi
 
-      # 9. Ejecutar el script principal
+      # 11. Ejecutar el script principal
       - name: Run main.py
         run: python main.py
 
-      # 10. Subir cambios de SQLite al repositorio
+      # 12. Subir cambios de SQLite al repositorio
       - name: Commit and push updated SQLite
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
