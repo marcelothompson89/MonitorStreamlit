@@ -42,6 +42,13 @@ from scrapers.paho_noti_reg import scrape_paho_noticias
 from scrapers.parlatino_reg import scrape_parlatino
 from scrapers.cepal_reg import scrape_cepal_noticias
 from scrapers.wto_eping_glo import scrape_eping
+from scrapers.minsalud_noti_cr import scrape_ministerio_salud_cr
+from scrapers.minsalud_noti_pa import scrape_minsa_noticias_pa
+from scrapers.minsalud_med_pa import scrape_minsa_med_pa
+from scrapers.farmaydrogas_pa import scrape_farmaydrogas_pa
+from scrapers.minsalud_noti_do import scrape_minsalud_noti_do
+from scrapers.sica_noti_cam import scrape_sica_cam
+from scrapers.latam_regnews_reg import scrape_latam_regunews
 
 # DB
 from database.db import SessionLocal, engine
@@ -94,6 +101,14 @@ async def run_scrapers():
         ("PARLATINO NOTICIAS_REG", scrape_parlatino),
         ("CEPAL NOTICIAS_REG", scrape_cepal_noticias),
         ("WTO EPING GLOBAL", scrape_eping),
+        ("MINSALUD NOTICIAS_CR", scrape_ministerio_salud_cr),
+        ("MINSALUD NOTICIAS_PA", scrape_minsa_noticias_pa),
+        ("MINSALUD MED_PA", scrape_minsa_med_pa),
+        ("FARMAYDROGAS_PA", scrape_farmaydrogas_pa),
+        ("MINSALUD NOTICIAS_DO", scrape_minsalud_noti_do),
+        ("SICA NOTICIAS_CAM", scrape_sica_cam),
+        ("LATAM ReguNews", scrape_latam_regunews)
+        
     ]
 
     async def execute_scraper(name, scraper_function):
