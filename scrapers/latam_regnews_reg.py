@@ -64,7 +64,7 @@ async def scrape_latam_regunews():
                         "country": _extract_country_from_url(news_url),
                         "presentation_date": fecha,
                         "category": category,
-                        "institution": source,
+                        "institution": "latam_regunews",
                         "metadata": json.dumps({"tipo": "Noticia"})
                     }
 
