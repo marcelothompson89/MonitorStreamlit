@@ -20,15 +20,23 @@ async def scrape_congreso_normas_br():
         page = await browser.new_page()
         await page.goto(url)
 
-        # Esperar a que la tabla de datos se cargue
-        await page.wait_for_selector("table.mat-table tbody tr")
+        # Esperar a que la página cargue completamente
+        await page.wait_for_load_state("networkidle")
+
+        # Verificar si la tabla realmente existe
+        table_exists = await page.query_selector("tbody.mdc-data-table__content tr")
+        if not table_exists:
+            print("No se encontraron datos en la tabla.")
+            html_content = await page.content()
+            print("Contenido de la página para depuración:", html_content[:1000])  # Imprimir parte del HTML
+            return []
 
         # Extraer el contenido HTML de la página
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
 
         # Seleccionar filas de la tabla
-        rows = soup.select("table.mat-table tbody tr")
+        rows = soup.select("tbody.mdc-data-table__content tr")
         if not rows:
             print("No se encontraron filas en esta página.")
             return []
@@ -36,17 +44,16 @@ async def scrape_congreso_normas_br():
         for row in rows:
             try:
                 # Extraer título (norma)
-                title_tag = row.select_one("td.mat-column-nome a")
+                title_tag = row.select_one("td.mat-column-nome a.norma-nome")
                 title = title_tag.get_text(strip=True) if title_tag else "Sin título"
 
                 # Extraer descripción (ementa)
-                description_tag = row.select_one("td.mat-column-ementa .ementa")
+                description_tag = row.select_one("td.mat-column-ementa div.ementa")
                 description = description_tag.get_text(strip=True) if description_tag else "Sin descripción"
 
-                # Extraer metadata (sección, organización, publicación)
-                section = row.select_one("td.mat-column-secao").get_text(strip=True) if row.select_one("td.mat-column-secao") else "Sin sección"
-                org = row.select_one("td.mat-column-orgao").get_text(strip=True) if row.select_one("td.mat-column-orgao") else "Sin organización"
-                pub_info = row.select_one("td.mat-column-publicacao").get_text(strip=True) if row.select_one("td.mat-column-publicacao") else "Sin información de publicación"
+                # Extraer la columna de origen de la norma
+                origin_tag = row.select_one("td.mat-column-ementa div.nombre-processo")
+                origin = origin_tag.get_text(strip=True) if origin_tag else "Sin origen"
 
                 # Extraer fecha desde el título usando una expresión regular
                 date_match = re.search(r'\b(\d{2}/\d{2}/\d{4})\b', title)
@@ -77,7 +84,7 @@ async def scrape_congreso_normas_br():
                 # Crear objeto en el formato esperado
                 item = {
                     'title': title,
-                    'description': description,
+                    'description': f"{description}\nOrigen: {origin}",
                     'source_url': source_url,
                     'source_type': "Congreso Brasil",
                     'category': "Normas",
@@ -94,9 +101,9 @@ async def scrape_congreso_normas_br():
     return items
 
 
-if __name__ == "__main__":
-    # Ejecutar el scraper de forma asíncrona
-    items = asyncio.run(scrape_congreso_normas_br())
+# if __name__ == "__main__":
+#     # Ejecutar el scraper de forma asíncrona
+#     items = asyncio.run(scrape_congreso_normas_br())
 
-    # Formatear salida como JSON para visualizar los datos
-    print(json.dumps(items, indent=4, default=str, ensure_ascii=False))
+#     # Formatear salida como JSON para visualizar los datos
+#     print(json.dumps(items, indent=4, default=str, ensure_ascii=False))

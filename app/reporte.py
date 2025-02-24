@@ -2,8 +2,7 @@ import streamlit as st
 import sys
 import os
 import datetime
-from sqlalchemy import create_engine
-
+from sqlalchemy import or_
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.db import SessionLocal
@@ -13,7 +12,7 @@ from database.models import Alerta, User, Keyword
 if "db_last_modified" not in st.session_state:
     st.session_state.db_last_modified = None
 
-# Función para verificar cambios en la base de datos
+# Función para verificar cambios en el archivo SQLite
 def check_db_update(db_path):
     """Verifica si el archivo SQLite ha cambiado."""
     try:
@@ -29,35 +28,29 @@ def check_db_update(db_path):
         return False
     return False
 
-# Fragmento que maneja la recarga manual y automática
+# Fragmento para recarga automática (sin botón de forzar recarga)
 @st.fragment
 def auto_reload_fragment(db_path):
-    # Verificar si la base de datos ha cambiado
     if check_db_update(db_path):
         st.warning("Se detectaron cambios en la base de datos. Recargando la app...")
-        st.rerun()
-
-    # Botón para recargar manualmente
-    if st.button("Forzar Recarga"):
-        st.session_state.db_last_modified = os.path.getmtime(db_path)
         st.rerun()
 
 def main():
     # Ruta al archivo SQLite
     db_path = "./alerts2.db"
 
-    # Diseño con columnas para el título y el botón de recarga
-    col1, col2 = st.columns([8, 2])
+    # Diseño de la cabecera
+    col1, _ = st.columns([8, 2])
     with col1:
         st.title("Listado de Alertas")
-    with col2:
-        # Fragmento de recarga
-        auto_reload_fragment(db_path)
+
+    # Llamar al fragmento de recarga automática
+    auto_reload_fragment(db_path)
 
     session = SessionLocal()
 
     # ----------------------------------------------------------------
-    # Barra lateral
+    # Barra lateral: Filtros de búsqueda
     # ----------------------------------------------------------------
     st.sidebar.header("Filtros de búsqueda")
 
@@ -76,7 +69,6 @@ def main():
     if user:
         user_keywords = session.query(Keyword).filter(Keyword.user_id == user.id).all()
         keywords_list = [kw.word for kw in user_keywords]
-
         if keywords_list:
             keywords_list.insert(0, "Seleccionar todas")
             selected_keywords = st.sidebar.multiselect(
@@ -90,17 +82,21 @@ def main():
             st.sidebar.info("No hay palabras clave para este usuario.")
 
     # 3. Filtro por institución
-    all_institutions = sorted({a.institution for a in session.query(Alerta).all() if a.institution})
+    all_institutions = session.query(Alerta.institution).distinct().all()
+    all_institutions = sorted([inst[0] for inst in all_institutions if inst[0]])
     all_institutions.insert(0, "Todas")
     selected_institution = st.sidebar.selectbox("Institución:", all_institutions)
 
     # 4. Filtro por país
-    all_countries = sorted({a.country for a in session.query(Alerta).all() if a.country})
+    all_countries = session.query(Alerta.country).distinct().all()
+    all_countries = sorted([country[0] for country in all_countries if country[0]])
     all_countries.insert(0, "Todos")
     selected_country = st.sidebar.selectbox("País:", all_countries)
 
-    # 5. Filtro por rango de fechas
-    valid_dates = [a.presentation_date for a in session.query(Alerta).all() if a.presentation_date]
+    # 5. Filtro por rango de fechas (sin restricciones en el widget)
+    valid_dates = session.query(Alerta.presentation_date)\
+                         .filter(Alerta.presentation_date.isnot(None)).all()
+    valid_dates = [d[0] for d in valid_dates]
     if valid_dates:
         min_date = min(valid_dates).date()
         max_date = max(valid_dates).date()
@@ -110,9 +106,9 @@ def main():
 
     date_range = st.sidebar.date_input(
         "Rango de fechas:",
-        value=[min_date, max_date],
-        min_value=min_date,
-        max_value=max_date
+        value=[min_date, max_date]
+        # Se eliminan min_value=min_date y max_value=max_date
+        # para permitir elegir cualquier fecha
     )
     if len(date_range) == 2:
         start_date, end_date = date_range
@@ -123,24 +119,66 @@ def main():
     search_text = st.sidebar.text_input("Buscar por título o descripción:")
 
     # ----------------------------------------------------------------
-    # Aplicar filtros
+    # Construir la consulta SQL aplicando los filtros
     # ----------------------------------------------------------------
-    all_alertas = session.query(Alerta).order_by(Alerta.presentation_date.desc()).all()
-    filtered_alertas = [
-        alerta for alerta in all_alertas
-        if (selected_institution == "Todas" or alerta.institution == selected_institution)
-        and (selected_country == "Todos" or alerta.country == selected_country)
-        and (not alerta.presentation_date or (start_date <= alerta.presentation_date.date() <= end_date))
-        and (not search_text or search_text.lower() in (alerta.title or "").lower() or search_text.lower() in (alerta.description or "").lower())
-        and (not selected_keywords or any(k.lower() in (alerta.title or "").lower() or k.lower() in (alerta.description or "").lower() for k in selected_keywords))
-    ]
+    query = session.query(Alerta)
+
+    if selected_institution != "Todas":
+        query = query.filter(Alerta.institution == selected_institution)
+
+    if selected_country != "Todos":
+        query = query.filter(Alerta.country == selected_country)
+
+    # Filtrado por rango de fechas, incluyendo registros con fecha nula
+    start_datetime = datetime.datetime.combine(start_date, datetime.time.min)
+    end_datetime = datetime.datetime.combine(end_date, datetime.time.max)
+    query = query.filter(
+        or_(
+            Alerta.presentation_date == None,
+            Alerta.presentation_date.between(start_datetime, end_datetime)
+        )
+    )
+
+    # Búsqueda por texto en título o descripción
+    if search_text:
+        query = query.filter(
+            or_(
+                Alerta.title.ilike(f"%{search_text}%"),
+                Alerta.description.ilike(f"%{search_text}%")
+            )
+        )
+
+    # Filtrado por palabras clave (si se seleccionaron)
+    if selected_keywords:
+        keyword_conditions = [
+            or_(
+                Alerta.title.ilike(f"%{kw}%"),
+                Alerta.description.ilike(f"%{kw}%")
+            )
+            for kw in selected_keywords
+        ]
+        query = query.filter(or_(*keyword_conditions))
+
+    # Ordenar por fecha de presentación (descendente)
+    query = query.order_by(Alerta.presentation_date.desc())
+
+    # ----------------------------------------------------------------
+    # Paginación
+    # ----------------------------------------------------------------
+    page_size = st.sidebar.number_input("Registros por página", min_value=10, max_value=100, value=50)
+    page = st.sidebar.number_input("Página", min_value=1, value=1)
+
+    total_alertas = query.count()
+    query = query.limit(page_size).offset((page - 1) * page_size)
+    alertas = query.all()
+
+    st.subheader(f"{total_alertas} resultado(s) encontrado(s)")
 
     # ----------------------------------------------------------------
     # Mostrar resultados
     # ----------------------------------------------------------------
-    if filtered_alertas:
-        st.subheader(f"{len(filtered_alertas)} resultado(s) encontrado(s)")
-        for alerta in filtered_alertas:
+    if alertas:
+        for alerta in alertas:
             st.markdown("---")
             st.write(f"**Título**: {alerta.title}")
             st.write(f"Fecha: {alerta.presentation_date}")
